@@ -13,6 +13,7 @@ and then publis the vandor
     
  and dont forget to add ur open ai key in env varables 
  ie OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+![image](https://github.com/user-attachments/assets/9b790677-71d7-41b7-8c85-9c37942c92ea)
 
 
    
