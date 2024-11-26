@@ -10,6 +10,10 @@ and then publis the vandor
 
  then add the tmplate any whare u want 
     @include('vendor.cyrox.chatbot.chatbot')
+
+    run migration 
+    
+    php artisan make:migration create_chat_histories_table --path=packages/Cyrox/Chatbot/Database/migrations
     
  and dont forget to add ur open ai key in env varables 
  ie OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
