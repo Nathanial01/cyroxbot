@@ -7,14 +7,14 @@ use Illuminate\Support\ServiceProvider;
 class ChatbotServiceProvider extends ServiceProvider
 {
     public function boot()
-    {
-        // Automatically load migrations from the package
-        $this->loadMigrationsFrom(__DIR__ . '/./database/migrations');
+        {
+        // Automatically load migrations
+       $this->loadMigrationsFrom(__DIR__ . '/Database/migrations');
 
-        // Publish migrations (optional if auto-loaded)
-        $this->publishes([
-            __DIR__ . '/./database/migrations' => database_path('migrations'),
-        ], 'chatbot-migrations');
+             // Publish migrations
+      $this->publishes([
+         __DIR__ . '/Database/migrations' => database_path('migrations'),
+         ], 'chatbot-migrations');
 
         // Publish assets (public-facing files)
         $this->publishes([
