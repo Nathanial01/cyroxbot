@@ -21,3 +21,44 @@ and then publis the vandor
 
 
    
+set up in laravel inertia react
+
+create a compenent Chatbot.jsx
+
+
+const ChatbotPage = () => {
+    return (
+        <iframe
+            src="/chatbot-blade"
+            style={{ width: "100%", height: "500px", border: "none" }}
+            title="Chatbot"
+        ></iframe>
+    );
+};
+
+export default ChatbotPage;
+
+
+
+then make a ChatbotControlller 
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\chatbot;
+use App\Http\Requests\StorechatbotRequest;
+use App\Http\Requests\UpdatechatbotRequest;
+
+class ChatbotController extends Controller
+{
+   public function show()
+    {
+        return view('app')->with('content', view('vendor.cyrox.chatbot.chatbot'));
+    }
+    }
+
+    finally addd these route
+    Route::get('/chatbot-blade', function () {
+    return view('vendor.cyrox.chatbot.chatbot');
+});
