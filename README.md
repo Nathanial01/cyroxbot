@@ -28,21 +28,19 @@ create a compenent Chatbot.jsx
 
 import React, { useState } from "react";
 
-import React, { useState } from "react";
-
 const ChatbotPage = () => {
     const [isVisible, setIsVisible] = useState(true);
 
     return (
         isVisible && (
-            <div className="fixed bottom-5 right-5 w-full h-full z-[1000000] shadow-lg bg-none rounded-lg">
+           
   
                 <iframe
                     src="/chatbot-blade"
-                    className="w-full h-full border-none rounded-lg"
+                    className=" fixed w-96  border-none rounded-lg bottom-5 right-1 h-full z-[1] shadow-lg bg-none rounded-lg"
                     title="Chatbot"
                 ></iframe>
-            </div>
+     
         )
     );
 };
