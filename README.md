@@ -26,17 +26,32 @@ set up in laravel inertia react
 create a compenent Chatbot.jsx
 
 
+import React, { useState } from "react";
+
 const ChatbotPage = () => {
+    const [isVisible, setIsVisible] = useState(true);
+
     return (
-        <iframe
-            src="/chatbot-blade"
-            style={{ width: "100%", height: "500px", border: "none" }}
-            title="Chatbot"
-        ></iframe>
+        isVisible && (
+            <div className="fixed bottom-5 right-5 w-full h-full z-[1000000] shadow-lg bg-none rounded-lg">
+                <button
+                    onClick={() => setIsVisible(false)}
+                    className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
+                >
+                    
+                </button>
+                <iframe
+                    src="/chatbot-blade"
+                    className="w-full h-full border-none rounded-lg"
+                    title="Chatbot"
+                ></iframe>
+            </div>
+        )
     );
 };
 
 export default ChatbotPage;
+
 
 
 
