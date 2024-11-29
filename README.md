@@ -6,7 +6,10 @@ Cyrox Chatbot This is a lightweight chatbot package that can be easily embedded 
 install as fallow
 #composer require cyrox/chatbot:dev-main#
 and then publis the vandor 
- php artisan vendor:publish
+ php artisan vendor:publish --tag=chatbot-migrations 
+php artisan vendor:publish --tag=chatbot-views       
+php artisan vendor:publish --tag=chatbot-config       
+php artisan vendor:publish --tag=cyrox-chatbot-assets 
 
  then add the tmplate any whare u want 
     @include('vendor.cyrox.chatbot.chatbot')
