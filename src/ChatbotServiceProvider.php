@@ -1,5 +1,4 @@
 <?php
-
 namespace Cyrox\Chatbot;
 
 use Illuminate\Support\ServiceProvider;
