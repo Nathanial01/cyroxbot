@@ -1,5 +1,3 @@
-<?php
-
 namespace Cyrox\Chatbot\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
@@ -95,7 +93,7 @@ class ChatbotController extends BaseController
     private function generateAIResponse(string $prompt, array $context): string
     {
         $client = Client::factory([
-            'api_key' => config('chatbot.api_key'),
+            'api_key' => config('chatbot.openai.api_key'), // Use the unified config for API key
         ]);
 
         $messages = array_merge(
@@ -105,12 +103,13 @@ class ChatbotController extends BaseController
         );
 
         $response = $client->chat()->create([
-            'model' => 'gpt-4-turbo',
+            'model' => config('chatbot.openai.model'), // Use the model from the config
             'messages' => $messages,
-            'max_tokens' => 500,
+            'max_tokens' => config('chatbot.openai.max_tokens'), // Use the max tokens from config
+            'temperature' => config('chatbot.openai.temperature'), // Use temperature from config
         ]);
 
-        return $response['choices'][0]['message']['content'] ?? 'No response generated.';
+        return $response['choices'][0]['message']['content'] ?? config('chatbot.chatbot.fallback_message');
     }
 
     /**
