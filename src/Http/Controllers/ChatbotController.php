@@ -79,7 +79,6 @@ class ChatbotController extends BaseController
 
         foreach ($allowedKeywords as $keyword) {
             if (str_contains(strtolower($prompt), $keyword)) {
-                // Specific handling can be added for each keyword
                 return "You asked about $keyword. Here's what you need to know.";
             }
         }
@@ -93,7 +92,7 @@ class ChatbotController extends BaseController
     private function generateAIResponse(string $prompt, array $context): string
     {
         $client = Client::factory([
-            'api_key' => config('chatbot.openai.api_key'), // Use the unified config for API key
+            'api_key' => config('chatbot.openai.api_key'),
         ]);
 
         $messages = array_merge(
@@ -103,10 +102,10 @@ class ChatbotController extends BaseController
         );
 
         $response = $client->chat()->create([
-            'model' => config('chatbot.openai.model'), // Use the model from the config
+            'model' => config('chatbot.openai.model'),
             'messages' => $messages,
-            'max_tokens' => config('chatbot.openai.max_tokens'), // Use the max tokens from config
-            'temperature' => config('chatbot.openai.temperature'), // Use temperature from config
+            'max_tokens' => config('chatbot.openai.max_tokens'),
+            'temperature' => config('chatbot.openai.temperature'),
         ]);
 
         return $response['choices'][0]['message']['content'] ?? config('chatbot.chatbot.fallback_message');
