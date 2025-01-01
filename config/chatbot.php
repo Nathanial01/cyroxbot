@@ -1,3 +1,4 @@
+<?php
 return [
 
     /*
@@ -11,14 +12,14 @@ return [
     */
 
     'openai' => [
-        'api_key' => env('OPENAI_API_KEY', 'your-default-api-key'), // Use this API key to authenticate with OpenAI
-        'model' => env('OPENAI_MODEL', 'gpt-3.5-turbo'), // Default model
-        'max_tokens' => env('OPENAI_MAX_TOKENS', 150), // Max tokens for OpenAI responses
-        'temperature' => env('OPENAI_TEMPERATURE', 0.7), // Randomness of responses
-        'top_p' => env('OPENAI_TOP_P', 1.0), // Top probability for token selection
-        'presence_penalty' => env('OPENAI_PRESENCE_PENALTY', 0), // Penalize repeated topics
-        'frequency_penalty' => env('OPENAI_FREQUENCY_PENALTY', 0), // Penalize repeated phrases
-        'context_length' => env('OPENAI_CONTEXT_LENGTH', 5), // Number of previous interactions to consider
+        'api_key' => env('OPENAI_API_KEY', 'your-default-api-key'),
+        'model' => env('OPENAI_MODEL', 'gpt-3.5-turbo'),
+        'max_tokens' => env('OPENAI_MAX_TOKENS', 150),
+        'temperature' => env('OPENAI_TEMPERATURE', 0.7),
+        'top_p' => env('OPENAI_TOP_P', 1.0),
+        'presence_penalty' => env('OPENAI_PRESENCE_PENALTY', 0),
+        'frequency_penalty' => env('OPENAI_FREQUENCY_PENALTY', 0),
+        'context_length' => env('OPENAI_CONTEXT_LENGTH', 5),
     ],
 
     /*
