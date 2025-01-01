@@ -1,3 +1,4 @@
+<?php
 namespace Cyrox\Chatbot\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
