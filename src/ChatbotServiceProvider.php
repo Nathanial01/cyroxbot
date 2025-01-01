@@ -1,3 +1,5 @@
+<?php
+
 namespace Cyrox\Chatbot;
 
 use Illuminate\Support\ServiceProvider;
@@ -49,11 +51,6 @@ class ChatbotServiceProvider extends ServiceProvider
         // Merge package configuration with the application's config
         $this->mergeConfigFrom(
             __DIR__ . '/../config/chatbot.php', 'chatbot'
-        );
-
-        // Ensure the configuration file is accessible globally
-        $this->mergeConfigFrom(
-            __DIR__ . '/../config/chatbot.php', 'chatbot.openai'
         );
     }
 }
