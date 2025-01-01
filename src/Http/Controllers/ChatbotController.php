@@ -4,9 +4,8 @@ namespace Cyrox\Chatbot\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller as BaseController;
-use App\Models\User;
 use Illuminate\Http\Request;
-use OpenAI\Laravel\Facades\OpenAI;
+use OpenAI\Client;
 use Cyrox\Chatbot\Models\ChatHistory;
 
 class ChatbotController extends BaseController
@@ -14,9 +13,10 @@ class ChatbotController extends BaseController
     /**
      * Display the chatbot interface.
      */
-    public function index(User $user)
+    public function index(Request $request)
     {
-        $name = $user->name;
+        $user = $request->user(); // Retrieve authenticated user if applicable
+        $name = $user ? $user->name : 'Guest';
         return view('chatbot::chatbot', compact('name'));
     }
 
@@ -27,210 +27,107 @@ class ChatbotController extends BaseController
     {
         try {
             $prompt = $request->input('prompt');
-            $userId = auth()->check() ? auth()->id() : null;
+            $userId = $request->user() ? $request->user()->id : null;
 
-            // Load conversation context
-            $context = ChatHistory::where('user_id', $userId)
-                ->orderBy('created_at', 'desc')
-                ->take(5) // Retrieve the last 5 messages
-                ->get()
-                ->pluck('message')
-                ->toArray();
-
-            // Define allowed e-commerce topics
-            $allowedKeywords = ['cyroX.org',
-                'order', 'track order', 'order status', 'product', 'search product', 'add to cart',
-                'cart', 'checkout', 'refund', 'return', 'help', 'support', 'shipping', 'delivery',
-                'payment', 'invoice', 'receipt', 'store policies', 'account issues', 'product details',
-                'wishlist', 'customer service'
-            ];
-
-            // Check if user input contains relevant keywords or part of ongoing flow
-            $isRelevant = false;
-            $store = 'CyroX'; // Define the store name
-            $storeLink = 'https://cyrox.org'; // the store link
-            
-            // Check if the input contains allowed keywords
-            foreach ($allowedKeywords as $keyword) {
-                if (str_contains(strtolower($prompt), $keyword)) {
-                    $isRelevant = true;
-                    break;
-                }
-            }
-            
-            // Allow inputs if context exists (ongoing flow)
-            if (!$isRelevant && count($context) > 0) {
-                $isRelevant = true;
-            }
-            
-            // Check if the user is asking about the store name or link
-            if (str_contains(strtolower($prompt), 'store name') || str_contains(strtolower($prompt), 'store link')) {
-                $restrictedResponse = "The store name is $store. You can visit it at <a href='$storeLink' target='_blank' style='color:blue;'>$storeLink</a>.";
-                ChatHistory::create([
-                    'user_id' => $userId,
-                    'message' => $prompt,
-                    'sender'  => 'user',
-                ]);
-                ChatHistory::create([
-                    'user_id' => $userId,
-                    'message' => $restrictedResponse,
-                    'sender'  => 'bot',
-                ]);
-                return response()->json(['response' => $restrictedResponse]);
-            }
-            
-            // If the input is not relevant, return a restricted response
-            if (!$isRelevant) {
-                $restrictedResponse = "I can only assist with shopping-related tasks like tracking orders, searching for products, or managing your cart.";
-                ChatHistory::create([
-                    'user_id' => $userId,
-                    'message' => $prompt,
-                    'sender'  => 'user',
-                ]);
-                ChatHistory::create([
-                    'user_id' => $userId,
-                    'message' => $restrictedResponse,
-                    'sender'  => 'bot',
-                ]);
-                return response()->json(['response' => $restrictedResponse]);
+            // Validate the prompt
+            if (empty($prompt)) {
+                return response()->json(['error' => 'Prompt cannot be empty.'], 422);
             }
 
-            // Handle product search and order status explicitly
-            if (str_contains(strtolower($prompt), 'product id') || str_contains(strtolower($prompt), 'order number')) {
-                $productId = null;
-                $orderNumber = null;
+            // Retrieve conversation context
+            $context = $this->getContext($userId);
 
-                if (preg_match('/product id\s*:\s*(\d+)/i', $prompt, $matches)) {
-                    $productId = $matches[1];
-                }
+            // Check if the prompt is valid for e-commerce
+            $response = $this->handleEcommerceFlow($prompt, $context, $userId);
 
-                if (preg_match('/order number\s*:\s*(\d+)/i', $prompt, $matches)) {
-                    $orderNumber = $matches[1];
-                }
-
-                $result = null;
-
-                if ($productId) {
-                    $result = "Product ID $productId corresponds to 'Example Product Name' priced at $50.";
-                } elseif ($orderNumber) {
-                    $result = "Order number $orderNumber is currently being processed and will be shipped soon.";
-                }
-
-                if (!$result) {
-                    $result = "Sorry, I couldn't find any details for the given information. Please check and try again.";
-                }
-
-                ChatHistory::create([
-                    'user_id' => $userId,
-                    'message' => $prompt,
-                    'sender'  => 'user',
-                ]);
-
-                ChatHistory::create([
-                    'user_id' => $userId,
-                    'message' => $result,
-                    'sender'  => 'bot',
-                ]);
-
-                return response()->json(['response' => $result]);
+            // If no specific e-commerce response, proceed with OpenAI
+            if (!$response) {
+                $response = $this->generateAIResponse($prompt, $context);
             }
 
-            // Handle adding a product to the cart
-            if (str_contains(strtolower($prompt), 'add to cart')) {
-                $productId = null;
-                $productName = null;
+            // Save the prompt and response to chat history
+            $this->saveChatHistory($userId, $prompt, $response);
 
-                if (preg_match('/product id\s*:\s*(\d+)/i', $prompt, $matches)) {
-                    $productId = $matches[1];
-                }
-
-                if (preg_match('/product name\s*:\s*([a-zA-Z0-9\s]+)/i', $prompt, $matches)) {
-                    $productName = $matches[1];
-                }
-
-                if ($productId || $productName) {
-                    $cartAction = "The product";
-                    if ($productId) {
-                        $cartAction .= " with ID $productId";
-                    }
-                    if ($productName) {
-                        $cartAction .= " named '$productName'";
-                    }
-                    $cartAction .= " has been added to your cart.";
-
-                    ChatHistory::create([
-                        'user_id' => $userId,
-                        'message' => $prompt,
-                        'sender'  => 'user',
-                    ]);
-
-                    ChatHistory::create([
-                        'user_id' => $userId,
-                        'message' => $cartAction,
-                        'sender'  => 'bot',
-                    ]);
-
-                    return response()->json(['response' => $cartAction]);
-                } else {
-                    $errorResponse = "Sorry, I couldn't identify the product details. Please provide a valid product name or ID.";
-                    ChatHistory::create([
-                        'user_id' => $userId,
-                        'message' => $prompt,
-                        'sender'  => 'user',
-                    ]);
-
-                    ChatHistory::create([
-                        'user_id' => $userId,
-                        'message' => $errorResponse,
-                        'sender'  => 'bot',
-                    ]);
-
-                    return response()->json(['response' => $errorResponse]);
-                }
-            }
-
-            // General flow with GPT model
-            $systemPrompt = "You are a chatbot for an e-commerce website. Assist users with tasks like tracking orders, searching products, adding items to their cart, and providing store policies. Maintain context for an interactive experience.";
-
-            $messages = [
-                ['role' => 'system', 'content' => $systemPrompt]
-            ];
-
-            foreach ($context as $message) {
-                $messages[] = ['role' => 'assistant', 'content' => $message];
-            }
-
-            $messages[] = ['role' => 'user', 'content' => $prompt];
-
-            $response = OpenAI::chat()->create([
-                'model' => 'gpt-4-turbo',
-                'messages' => $messages,
-                'max_tokens' => 500,
-            ]);
-
-            $botResponse = $response['choices'][0]['message']['content'];
-
-            ChatHistory::create([
-                'user_id' => $userId,
-                'message' => $prompt,
-                'sender'  => 'user',
-            ]);
-
-            ChatHistory::create([
-                'user_id' => $userId,
-                'message' => $botResponse,
-                'sender'  => 'bot',
-            ]);
-
-            return response()->json(['response' => $botResponse]);
+            return response()->json(['response' => $response]);
 
         } catch (\Exception $e) {
-            \Log::error('Chatbot error: ' . $e->getMessage(), [
-                'prompt' => $prompt,
-                'user_id' => $userId
-            ]);
-
+            \Log::error('Chatbot error: ' . $e->getMessage());
             return response()->json(['error' => 'An internal error occurred. Please try again later.'], 500);
         }
+    }
+
+    /**
+     * Retrieve the last 5 messages from the chat history for context.
+     */
+    private function getContext(?int $userId): array
+    {
+        return ChatHistory::where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->pluck('message')
+            ->toArray();
+    }
+
+    /**
+     * Handle predefined e-commerce-related flows.
+     */
+    private function handleEcommerceFlow(string $prompt, array $context, ?int $userId): ?string
+    {
+        $allowedKeywords = [
+            'order', 'track order', 'order status', 'product', 'add to cart', 
+            'refund', 'return', 'help', 'support', 'shipping', 'payment'
+        ];
+
+        foreach ($allowedKeywords as $keyword) {
+            if (str_contains(strtolower($prompt), $keyword)) {
+                // Specific handling can be added for each keyword
+                return "You asked about $keyword. Here's what you need to know.";
+            }
+        }
+
+        return null; // No predefined flow triggered
+    }
+
+    /**
+     * Generate an AI response using OpenAI.
+     */
+    private function generateAIResponse(string $prompt, array $context): string
+    {
+        $client = Client::factory([
+            'api_key' => config('chatbot.api_key'),
+        ]);
+
+        $messages = array_merge(
+            [['role' => 'system', 'content' => 'You are an e-commerce assistant.']],
+            array_map(fn($message) => ['role' => 'user', 'content' => $message], $context),
+            [['role' => 'user', 'content' => $prompt]]
+        );
+
+        $response = $client->chat()->create([
+            'model' => 'gpt-4-turbo',
+            'messages' => $messages,
+            'max_tokens' => 500,
+        ]);
+
+        return $response['choices'][0]['message']['content'] ?? 'No response generated.';
+    }
+
+    /**
+     * Save the prompt and response to the chat history.
+     */
+    private function saveChatHistory(?int $userId, string $prompt, string $response): void
+    {
+        ChatHistory::create([
+            'user_id' => $userId,
+            'message' => $prompt,
+            'sender' => 'user',
+        ]);
+
+        ChatHistory::create([
+            'user_id' => $userId,
+            'message' => $response,
+            'sender' => 'bot',
+        ]);
     }
 }
